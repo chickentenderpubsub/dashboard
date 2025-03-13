@@ -816,321 +816,321 @@ with tab1:
         )
 
         # ----------------- Streak Analysis Visualization -----------------
-st.subheader("Recent Performance Trends")
-
-with st.expander("About This Section", expanded=True):
-    st.write("""
-    This section shows which stores are **improving**, **stable**, or **declining** over the last several weeks.
-    
-    While the Store Performance Categories tab shows overall long-term performance, 
-    this analysis focuses specifically on recent short-term trends to help identify emerging patterns.
-    """)
-
-# Define dark theme variables to match the Store Performance Categories tab
-dark_bg = "#2C2C2C"     # dark background for cards
-light_text = "#FFFFFF"  # light text for contrast
-
-# Simplified controls with business-friendly language
-col1, col2 = st.columns(2)
-with col1:
-    trend_window = st.slider(
-        "Number of recent weeks to analyze", 
-        min_value=3, 
-        max_value=8, 
-        value=4,
-        help="Focus on more recent weeks (e.g., 4) or a longer period (e.g., 8)"
-    )
-with col2:
-    sensitivity = st.select_slider(
-        "Sensitivity to small changes", 
-        options=["Low", "Medium", "High"],
-        value="Medium",
-        help="High sensitivity will detect smaller changes in performance"
-    )
-    
-    # Convert sensitivity to numerical threshold
-    if sensitivity == "Low":
-        momentum_threshold = 0.5
-    elif sensitivity == "High":
-        momentum_threshold = 0.2
-    else:  # Medium
-        momentum_threshold = 0.3
-
-# Calculate performance direction for each store
-store_directions = []
-
-for store_id, store_data in heatmap_df.groupby('StoreID'):
-    if len(store_data) < trend_window:
-        continue
+        st.subheader("Recent Performance Trends")
         
-    # Sort by week
-    store_data = store_data.sort_values('Week')
-    
-    # Get the most recent weeks for analysis
-    recent_data = store_data.tail(trend_window)
-    
-    # Calculate simple average for first half and second half
-    half_point = trend_window // 2
-    if trend_window <= 3:
-        first_half = recent_data.iloc[0:1]['EngagedPct'].mean()
-        second_half = recent_data.iloc[-1:]['EngagedPct'].mean()
-    else:
-        first_half = recent_data.iloc[0:half_point]['EngagedPct'].mean()
-        second_half = recent_data.iloc[-half_point:]['EngagedPct'].mean()
-    
-    # Calculate change from first to second half
-    change = second_half - first_half
-    
-    # Calculate start and end values for display
-    start_value = recent_data.iloc[0]['EngagedPct']
-    current_value = recent_data.iloc[-1]['EngagedPct']
-    total_change = current_value - start_value
-    
-    # Calculate simple trend (for internal use)
-    x = np.array(range(len(recent_data)))
-    y = recent_data['EngagedPct'].values
-    slope, _ = np.polyfit(x, y, 1)
-    
-    # Determine direction in user-friendly terms
-    if abs(change) < momentum_threshold:
-        direction = "Stable"
-        strength = "Holding Steady"
-        color = "#1976D2"  # Blue
-    elif change > 0:
-        direction = "Improving"
-        strength = "Strong Improvement" if change > momentum_threshold * 2 else "Gradual Improvement"
-        color = "#2E7D32"  # Green
-    else:
-        direction = "Declining"
-        strength = "Significant Decline" if change < -momentum_threshold * 2 else "Gradual Decline"
-        color = "#C62828"  # Red
-    
-    # Add visual indicators
-    if direction == "Improving":
-        indicator = "↗️" if strength == "Gradual Improvement" else "🔼"
-    elif direction == "Declining":
-        indicator = "↘️" if strength == "Gradual Decline" else "🔽"
-    else:
-        indicator = "➡️"
-    
-    # Store the data
-    store_directions.append({
-        'store': store_id,
-        'direction': direction,
-        'strength': strength,
-        'indicator': indicator,
-        'start_value': start_value,
-        'current_value': current_value,
-        'total_change': total_change,
-        'half_change': change,
-        'color': color,
-        'weeks': trend_window,
-        'slope': slope  # Keep for sorting but don't show to users
-    })
-
-# Create DataFrame from the direction data
-direction_df = pd.DataFrame(store_directions)
-
-# Only proceed if we have data
-if direction_df.empty:
-    st.info(f"Not enough data to analyze recent trends. Try selecting a larger date range or reducing the number of weeks to analyze.")
-else:
-    # Sort by direction and strength
-    direction_order = {"Improving": 0, "Stable": 1, "Declining": 2}
-    
-    direction_df['direction_order'] = direction_df['direction'].map(direction_order)
-    sorted_stores = direction_df.sort_values(['direction_order', 'slope'], ascending=[True, False])
-    
-    # Display summary metrics
-    col1, col2, col3 = st.columns(3)
-    
-    improving_count = len(direction_df[direction_df['direction'] == 'Improving'])
-    stable_count = len(direction_df[direction_df['direction'] == 'Stable'])
-    declining_count = len(direction_df[direction_df['direction'] == 'Declining'])
-    
-    with col1:
-        st.metric(
-            "Improving", 
-            f"{improving_count} stores",
-            delta="↗️",
-            delta_color="normal"
-        )
-    
-    with col2:
-        st.metric(
-            "Stable", 
-            f"{stable_count} stores",
-            delta="➡️",
-            delta_color="off"
-        )
-    
-    with col3:
-        st.metric(
-            "Declining", 
-            f"{declining_count} stores",
-            delta="↘️",
-            delta_color="inverse"
-        )
-    
-    # Group by direction
-    for direction in ['Improving', 'Stable', 'Declining']:
-        direction_data = sorted_stores[sorted_stores['direction'] == direction]
-        
-        if direction_data.empty:
-            continue
+        with st.expander("About This Section", expanded=True):
+            st.write("""
+            This section shows which stores are **improving**, **stable**, or **declining** over the last several weeks.
             
-        # Get the color for this direction
-        color = direction_data.iloc[0]['color']
+            While the Store Performance Categories tab shows overall long-term performance, 
+            this analysis focuses specifically on recent short-term trends to help identify emerging patterns.
+            """)
         
-        st.markdown(f"""
-        <div style="
-            border-left: 5px solid {color};
-            padding-left: 10px;
-            margin-top: 20px;
-            margin-bottom: 10px;
-        ">
-            <h4 style="color: {color};">{direction} ({len(direction_data)} stores)</h4>
-        </div>
-        """, unsafe_allow_html=True)
+        # Define dark theme variables to match the Store Performance Categories tab
+        dark_bg = "#2C2C2C"     # dark background for cards
+        light_text = "#FFFFFF"  # light text for contrast
         
-        # Create columns based on the number of stores
-        cols_per_row = 3
-        num_rows = (len(direction_data) + cols_per_row - 1) // cols_per_row
-        
-        for row in range(num_rows):
-            cols = st.columns(cols_per_row)
+        # Simplified controls with business-friendly language
+        col1, col2 = st.columns(2)
+        with col1:
+            trend_window = st.slider(
+                "Number of recent weeks to analyze", 
+                min_value=3, 
+                max_value=8, 
+                value=4,
+                help="Focus on more recent weeks (e.g., 4) or a longer period (e.g., 8)"
+            )
+        with col2:
+            sensitivity = st.select_slider(
+                "Sensitivity to small changes", 
+                options=["Low", "Medium", "High"],
+                value="Medium",
+                help="High sensitivity will detect smaller changes in performance"
+            )
             
-            for i in range(cols_per_row):
-                idx = row * cols_per_row + i
+            # Convert sensitivity to numerical threshold
+            if sensitivity == "Low":
+                momentum_threshold = 0.5
+            elif sensitivity == "High":
+                momentum_threshold = 0.2
+            else:  # Medium
+                momentum_threshold = 0.3
+        
+        # Calculate performance direction for each store
+        store_directions = []
+        
+        for store_id, store_data in heatmap_df.groupby('StoreID'):
+            if len(store_data) < trend_window:
+                continue
                 
-                if idx < len(direction_data):
-                    store_data = direction_data.iloc[idx]
-                    
-                    with cols[i]:
-                        # Format values for display
-                        change_display = f"{store_data['total_change']:.2f}%"
-                        change_sign = "+" if store_data['total_change'] > 0 else ""
-                        
-                        # Create card with dark styling to match Store Performance Categories tab
-                        st.markdown(f"""
-                        <div style="
-                            background-color: {dark_bg};
-                            padding: 10px;
-                            border-radius: 5px;
-                            margin-bottom: 10px;
-                            border-left: 5px solid {store_data['color']};
-                        ">
-                            <h4 style="text-align: center; margin: 5px 0; color: {store_data['color']};">
-                                {store_data['indicator']} Store {store_data['store']}
-                            </h4>
-                            <p style="text-align: center; margin: 5px 0; color: {light_text};">
-                                <strong>{store_data['strength']}</strong><br>
-                                <span style="font-size: 0.9em;">
-                                    <strong>{change_sign}{change_display}</strong> over {store_data['weeks']} weeks
-                                </span><br>
-                                <span style="font-size: 0.85em; color: #BBBBBB;">
-                                    {store_data['start_value']:.2f}% → {store_data['current_value']:.2f}%
-                                </span>
-                            </p>
-                        </div>
-                        """, unsafe_allow_html=True)
-    
-    # Create a simplified visualization
-    st.subheader("Recent Engagement Change")
-    st.write("This chart shows how much each store's engagement has changed during the selected analysis period.")
-    
-    # Prepare data for chart
-    chart_data = direction_df.copy()
-    
-    # Create the change chart
-    change_chart = alt.Chart(chart_data).mark_bar().encode(
-        x=alt.X('total_change:Q', title='Change in Engagement % (Over Selected Weeks)'),
-        y=alt.Y('store:N', title='Store', sort=alt.EncodingSortField(field='total_change', order='descending')),
-        color=alt.Color('direction:N', 
-                        scale=alt.Scale(domain=['Improving', 'Stable', 'Declining'],
-                                        range=['#2E7D32', '#1976D2', '#C62828'])),
-        tooltip=[
-            alt.Tooltip('store:N', title='Store'),
-            alt.Tooltip('direction:N', title='Direction'),
-            alt.Tooltip('strength:N', title='Performance'),
-            alt.Tooltip('start_value:Q', title='Starting Value', format='.2f'),
-            alt.Tooltip('current_value:Q', title='Current Value', format='.2f'),
-            alt.Tooltip('total_change:Q', title='Total Change', format='+.2f')
-        ]
-    ).properties(
-        height=max(250, len(chart_data) * 25)
-    )
-    
-    # Add a zero reference line
-    zero_line = alt.Chart(pd.DataFrame({'x': [0]})).mark_rule(color='white', strokeDash=[3, 3]).encode(x='x:Q')
-    
-    # Combine and display
-    final_chart = change_chart + zero_line
-    st.altair_chart(final_chart, use_container_width=True)
-    
-    # Add complementary information that doesn't overlap with Store Performance Categories
-    st.subheader("How to Use This Analysis")
-    
-    st.markdown("""
-    **This section complements the Store Performance Categories tab:**
-    
-    - **Store Performance Categories** focuses on overall, longer-term store performance
-    - **Recent Performance Trends** highlights short-term movement that might not yet be reflected in the categories
-    
-    **When to take action:**
-    
-    - A "Star Performer" showing a "Declining" trend may need attention before performance drops
-    - A "Requires Intervention" store showing an "Improving" trend indicates your actions may be working
-    - Stores showing opposite trends from their category deserve the most attention
-    """)
-    
-    # Show meaningful insights about the data rather than generic recommendations
-    st.subheader("Key Insights")
-    
-    # Calculate some quick insights
-    insight_points = []
-    
-    # Check if any top performers are declining
-    if 'Category' in df_filtered.columns:
-        # Find stores that are categorized differently than their recent trend
-        category_conflict = []
-        for _, store in direction_df.iterrows():
-            store_id = store['store']
-            store_cat = df_filtered[df_filtered['Store #'] == store_id]['Category'].iloc[0] if not df_filtered[df_filtered['Store #'] == store_id].empty else None
+            # Sort by week
+            store_data = store_data.sort_values('Week')
             
-            if store_cat == "Star Performer" and store['direction'] == "Declining":
-                category_conflict.append({
-                    'store': store_id,
-                    'conflict': "Star performer with recent decline",
-                    'color': "#F57C00"  # Orange
-                })
-            elif store_cat == "Requires Intervention" and store['direction'] == "Improving":
-                category_conflict.append({
-                    'store': store_id,
-                    'conflict': "Struggling store showing improvement",
-                    'color': "#2E7D32"  # Green
-                })
+            # Get the most recent weeks for analysis
+            recent_data = store_data.tail(trend_window)
+            
+            # Calculate simple average for first half and second half
+            half_point = trend_window // 2
+            if trend_window <= 3:
+                first_half = recent_data.iloc[0:1]['EngagedPct'].mean()
+                second_half = recent_data.iloc[-1:]['EngagedPct'].mean()
+            else:
+                first_half = recent_data.iloc[0:half_point]['EngagedPct'].mean()
+                second_half = recent_data.iloc[-half_point:]['EngagedPct'].mean()
+            
+            # Calculate change from first to second half
+            change = second_half - first_half
+            
+            # Calculate start and end values for display
+            start_value = recent_data.iloc[0]['EngagedPct']
+            current_value = recent_data.iloc[-1]['EngagedPct']
+            total_change = current_value - start_value
+            
+            # Calculate simple trend (for internal use)
+            x = np.array(range(len(recent_data)))
+            y = recent_data['EngagedPct'].values
+            slope, _ = np.polyfit(x, y, 1)
+            
+            # Determine direction in user-friendly terms
+            if abs(change) < momentum_threshold:
+                direction = "Stable"
+                strength = "Holding Steady"
+                color = "#1976D2"  # Blue
+            elif change > 0:
+                direction = "Improving"
+                strength = "Strong Improvement" if change > momentum_threshold * 2 else "Gradual Improvement"
+                color = "#2E7D32"  # Green
+            else:
+                direction = "Declining"
+                strength = "Significant Decline" if change < -momentum_threshold * 2 else "Gradual Decline"
+                color = "#C62828"  # Red
+            
+            # Add visual indicators
+            if direction == "Improving":
+                indicator = "↗️" if strength == "Gradual Improvement" else "🔼"
+            elif direction == "Declining":
+                indicator = "↘️" if strength == "Gradual Decline" else "🔽"
+            else:
+                indicator = "➡️"
+            
+            # Store the data
+            store_directions.append({
+                'store': store_id,
+                'direction': direction,
+                'strength': strength,
+                'indicator': indicator,
+                'start_value': start_value,
+                'current_value': current_value,
+                'total_change': total_change,
+                'half_change': change,
+                'color': color,
+                'weeks': trend_window,
+                'slope': slope  # Keep for sorting but don't show to users
+            })
         
-        if category_conflict:
-            insight_points.append("**Stores with changing performance:**")
-            for conflict in category_conflict:
-                insight_points.append(f"- Store {conflict['store']}: {conflict['conflict']}")
-    
-    # Find stores with largest improvement
-    if not direction_df.empty:
-        top_improver = direction_df.loc[direction_df['total_change'].idxmax()]
-        insight_points.append(f"**Most improved store:** Store {top_improver['store']} with {top_improver['total_change']:.2f}% increase")
+        # Create DataFrame from the direction data
+        direction_df = pd.DataFrame(store_directions)
         
-        # Find stores with largest decline
-        top_decliner = direction_df.loc[direction_df['total_change'].idxmin()]
-        insight_points.append(f"**Largest decline:** Store {top_decliner['store']} with {top_decliner['total_change']:.2f}% decrease")
-    
-    # Show insights if we have any
-    if insight_points:
-        for insight in insight_points:
-            st.markdown(insight)
-    else:
-        st.info("No significant insights detected in recent performance data.")
+        # Only proceed if we have data
+        if direction_df.empty:
+            st.info(f"Not enough data to analyze recent trends. Try selecting a larger date range or reducing the number of weeks to analyze.")
+        else:
+            # Sort by direction and strength
+            direction_order = {"Improving": 0, "Stable": 1, "Declining": 2}
+            
+            direction_df['direction_order'] = direction_df['direction'].map(direction_order)
+            sorted_stores = direction_df.sort_values(['direction_order', 'slope'], ascending=[True, False])
+            
+            # Display summary metrics
+            col1, col2, col3 = st.columns(3)
+            
+            improving_count = len(direction_df[direction_df['direction'] == 'Improving'])
+            stable_count = len(direction_df[direction_df['direction'] == 'Stable'])
+            declining_count = len(direction_df[direction_df['direction'] == 'Declining'])
+            
+            with col1:
+                st.metric(
+                    "Improving", 
+                    f"{improving_count} stores",
+                    delta="↗️",
+                    delta_color="normal"
+                )
+            
+            with col2:
+                st.metric(
+                    "Stable", 
+                    f"{stable_count} stores",
+                    delta="➡️",
+                    delta_color="off"
+                )
+            
+            with col3:
+                st.metric(
+                    "Declining", 
+                    f"{declining_count} stores",
+                    delta="↘️",
+                    delta_color="inverse"
+                )
+            
+            # Group by direction
+            for direction in ['Improving', 'Stable', 'Declining']:
+                direction_data = sorted_stores[sorted_stores['direction'] == direction]
+                
+                if direction_data.empty:
+                    continue
+                    
+                # Get the color for this direction
+                color = direction_data.iloc[0]['color']
+                
+                st.markdown(f"""
+                <div style="
+                    border-left: 5px solid {color};
+                    padding-left: 10px;
+                    margin-top: 20px;
+                    margin-bottom: 10px;
+                ">
+                    <h4 style="color: {color};">{direction} ({len(direction_data)} stores)</h4>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Create columns based on the number of stores
+                cols_per_row = 3
+                num_rows = (len(direction_data) + cols_per_row - 1) // cols_per_row
+                
+                for row in range(num_rows):
+                    cols = st.columns(cols_per_row)
+                    
+                    for i in range(cols_per_row):
+                        idx = row * cols_per_row + i
+                        
+                        if idx < len(direction_data):
+                            store_data = direction_data.iloc[idx]
+                            
+                            with cols[i]:
+                                # Format values for display
+                                change_display = f"{store_data['total_change']:.2f}%"
+                                change_sign = "+" if store_data['total_change'] > 0 else ""
+                                
+                                # Create card with dark styling to match Store Performance Categories tab
+                                st.markdown(f"""
+                                <div style="
+                                    background-color: {dark_bg};
+                                    padding: 10px;
+                                    border-radius: 5px;
+                                    margin-bottom: 10px;
+                                    border-left: 5px solid {store_data['color']};
+                                ">
+                                    <h4 style="text-align: center; margin: 5px 0; color: {store_data['color']};">
+                                        {store_data['indicator']} Store {store_data['store']}
+                                    </h4>
+                                    <p style="text-align: center; margin: 5px 0; color: {light_text};">
+                                        <strong>{store_data['strength']}</strong><br>
+                                        <span style="font-size: 0.9em;">
+                                            <strong>{change_sign}{change_display}</strong> over {store_data['weeks']} weeks
+                                        </span><br>
+                                        <span style="font-size: 0.85em; color: #BBBBBB;">
+                                            {store_data['start_value']:.2f}% → {store_data['current_value']:.2f}%
+                                        </span>
+                                    </p>
+                                </div>
+                                """, unsafe_allow_html=True)
+            
+            # Create a simplified visualization
+            st.subheader("Recent Engagement Change")
+            st.write("This chart shows how much each store's engagement has changed during the selected analysis period.")
+            
+            # Prepare data for chart
+            chart_data = direction_df.copy()
+            
+            # Create the change chart
+            change_chart = alt.Chart(chart_data).mark_bar().encode(
+                x=alt.X('total_change:Q', title='Change in Engagement % (Over Selected Weeks)'),
+                y=alt.Y('store:N', title='Store', sort=alt.EncodingSortField(field='total_change', order='descending')),
+                color=alt.Color('direction:N', 
+                                scale=alt.Scale(domain=['Improving', 'Stable', 'Declining'],
+                                                range=['#2E7D32', '#1976D2', '#C62828'])),
+                tooltip=[
+                    alt.Tooltip('store:N', title='Store'),
+                    alt.Tooltip('direction:N', title='Direction'),
+                    alt.Tooltip('strength:N', title='Performance'),
+                    alt.Tooltip('start_value:Q', title='Starting Value', format='.2f'),
+                    alt.Tooltip('current_value:Q', title='Current Value', format='.2f'),
+                    alt.Tooltip('total_change:Q', title='Total Change', format='+.2f')
+                ]
+            ).properties(
+                height=max(250, len(chart_data) * 25)
+            )
+            
+            # Add a zero reference line
+            zero_line = alt.Chart(pd.DataFrame({'x': [0]})).mark_rule(color='white', strokeDash=[3, 3]).encode(x='x:Q')
+            
+            # Combine and display
+            final_chart = change_chart + zero_line
+            st.altair_chart(final_chart, use_container_width=True)
+            
+            # Add complementary information that doesn't overlap with Store Performance Categories
+            st.subheader("How to Use This Analysis")
+            
+            st.markdown("""
+            **This section complements the Store Performance Categories tab:**
+            
+            - **Store Performance Categories** focuses on overall, longer-term store performance
+            - **Recent Performance Trends** highlights short-term movement that might not yet be reflected in the categories
+            
+            **When to take action:**
+            
+            - A "Star Performer" showing a "Declining" trend may need attention before performance drops
+            - A "Requires Intervention" store showing an "Improving" trend indicates your actions may be working
+            - Stores showing opposite trends from their category deserve the most attention
+            """)
+            
+            # Show meaningful insights about the data rather than generic recommendations
+            st.subheader("Key Insights")
+            
+            # Calculate some quick insights
+            insight_points = []
+            
+            # Check if any top performers are declining
+            if 'Category' in df_filtered.columns:
+                # Find stores that are categorized differently than their recent trend
+                category_conflict = []
+                for _, store in direction_df.iterrows():
+                    store_id = store['store']
+                    store_cat = df_filtered[df_filtered['Store #'] == store_id]['Category'].iloc[0] if not df_filtered[df_filtered['Store #'] == store_id].empty else None
+                    
+                    if store_cat == "Star Performer" and store['direction'] == "Declining":
+                        category_conflict.append({
+                            'store': store_id,
+                            'conflict': "Star performer with recent decline",
+                            'color': "#F57C00"  # Orange
+                        })
+                    elif store_cat == "Requires Intervention" and store['direction'] == "Improving":
+                        category_conflict.append({
+                            'store': store_id,
+                            'conflict': "Struggling store showing improvement",
+                            'color': "#2E7D32"  # Green
+                        })
+                
+                if category_conflict:
+                    insight_points.append("**Stores with changing performance:**")
+                    for conflict in category_conflict:
+                        insight_points.append(f"- Store {conflict['store']}: {conflict['conflict']}")
+            
+            # Find stores with largest improvement
+            if not direction_df.empty:
+                top_improver = direction_df.loc[direction_df['total_change'].idxmax()]
+                insight_points.append(f"**Most improved store:** Store {top_improver['store']} with {top_improver['total_change']:.2f}% increase")
+                
+                # Find stores with largest decline
+                top_decliner = direction_df.loc[direction_df['total_change'].idxmin()]
+                insight_points.append(f"**Largest decline:** Store {top_decliner['store']} with {top_decliner['total_change']:.2f}% decrease")
+            
+            # Show insights if we have any
+            if insight_points:
+                for insight in insight_points:
+                    st.markdown(insight)
+            else:
+                st.info("No significant insights detected in recent performance data.")
 
 
 # ----------------- TAB 2: Store Comparison -----------------
