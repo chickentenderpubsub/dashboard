@@ -447,7 +447,6 @@ tab1, tab2, tab3, tab4 = st.tabs([
 with tab1:
     st.subheader("Engagement Trends Over Time")
 
-    # Replace the highlight top/bottom with more useful view options
     view_option = st.radio(
         "View mode:", 
         ["All Stores", "Custom Selection", "Recent Trends"],
@@ -1739,7 +1738,7 @@ with st.sidebar.expander("Help & Information"):
         - **Store Performance Categories**: See store categories and action plans
         - **Anomalies & Insights**: Identify unusual patterns and opportunities
     
-    For technical support, contact the District Analytics Team.
+    For technical support, contact Reid.
     """)
 
 
