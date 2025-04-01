@@ -164,7 +164,7 @@ def find_anomalies(df, z_threshold=2.0):
 # --------------------------------------------------------
 
 st.set_page_config(
-    page_title="Publix District 20 Engagement Dashboard",
+    page_title="Club Publix Engagement Dashboard",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -206,9 +206,9 @@ st.markdown("""
 # Title & Introduction
 # --------------------------------------------------------
 
-st.markdown("<h1 class='dashboard-title'>Publix District 20 Engagement Dashboard</h1>", unsafe_allow_html=True)
-st.markdown("**Publix Supermarkets – District 20** engagement analysis dashboard. "
-            "Upload weekly engagement data to explore key performance indicators, trends, and opportunities across 10 stores. "
+st.markdown("<h1 class='dashboard-title'>Club Publix Engagement Dashboard</h1>", unsafe_allow_html=True)
+st.markdown("**Club Publix Engagement** analysis dashboard. "
+            "Upload weekly engagement data to explore key performance indicators, trends, and opportunities across stores. "
             "Use the filters on the left to drill down by time period or store.")
 
 # --------------------------------------------------------
