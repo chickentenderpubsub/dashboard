@@ -83,8 +83,8 @@ I extract that information manually and enter it into a spreadsheet, which is th
    **Option B: Run Locally (For Advanced Users)**
    ```bash
    # Clone repository and install requirements
-   git clone https://github.com/yourusername/club-publix-dashboard.git
-   cd club-publix-dashboard
+   git clone https://github.com/chickentenderpubsub/dashboard.git
+   cd dashboard
    pip install -r requirements.txt
    
    # Launch locally
